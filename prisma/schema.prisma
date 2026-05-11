@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Product {
+  id                String             @id @default(uuid())
+  slug              String             @unique
+  title             String
+  titleEn           String?
+  description       String?
+  descriptionCn     String?
+  priceMin          Int
+  priceMax          Int
+  currency          String             @default("CNY")
+  mainImage         String
+  images            String
+  status            String             @default("active")
+  isFeatured        Boolean            @default(false)
+  viewCount         Int                @default(0)
+  salesCount        Int                @default(0)
+  popularityScore   Float              @default(0)
+  ctr               Float              @default(0)
+  // 向量搜索字段
+  embedding         String?            // JSON 存储 1024 维向量
+  imageEmbedding    String?            // JSON 存储图片向量
+  hasEmbedding      Boolean            @default(false)
+  // AI 生成属性
+  aiBrandName       String?
+  aiAttributes      String?            // JSON 存储 { gender, style, ... }
+  brandId           String
+  primaryCategoryId String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  affiliateLinks    AffiliateLink[]
+  categories        CategoryProduct[]
+  favorites         Favorite[]
+  brand             Brand              @relation(fields: [brandId], references: [id])
+  primaryCategory   Category           @relation(fields: [primaryCategoryId], references: [id])
+  attributes        ProductAttribute[]
+  skus              ProductSKU[]
+  reviews           Review[]
+  shippingInfo      ShippingInfo?
+
+  @@index([slug])
+  @@index([brandId])
+  @@index([primaryCategoryId])
+  @@index([status])
+  @@index([hasEmbedding])
+}
+
+model ProductSKU {
+  id        String   @id @default(uuid())
+  productId String
+  name      String
+  price     Int
+  stock     Int      @default(0)
+  options   String
+  image     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductAttribute {
+  id        String   @id @default(uuid())
+  productId String
+  name      String
+  value     String
+  type      String   @default("text")
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Brand {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  nameCn       String?
+  slug         String    @unique
+  description  String?
+  logoUrl      String?
+  productCount Int       @default(0)
+  metaTitle    String?
+  metaDesc     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+
+  @@index([slug])
+}
+
+model Category {
+  id              String            @id @default(uuid())
+  name            String
+  nameEn          String?
+  slug            String            @unique
+  level           Int               @default(0)
+  parentId        String?
+  sortOrder       Int               @default(0)
+  isActive        Boolean           @default(true)
+  aliases         String?           @default("[]")
+  translations    String?
+  coverImage      String?
+  productCount    Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  parent          Category?         @relation("CategoryTree", fields: [parentId], references: [id])
+  children        Category[]        @relation("CategoryTree")
+  products        CategoryProduct[]
+  primaryProducts Product[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([level])
+}
+
+model CategoryProduct {
+  categoryId String
+  productId  String
+  category   Category @relation(fields: [categoryId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@id([categoryId, productId])
+}
+
+model AffiliateLink {
+  id             String    @id @default(uuid())
+  productId      String
+  platformId     String?   // 关联到 Platform 表
+  platform       String    // 平台名称（保留用于兼容）
+  platformUrl    String
+  affiliateUrl   String
+  isActive       Boolean   @default(true)
+  isPrimary      Boolean   @default(false)
+  clickCount     Int       @default(0)
+  conversionRate Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  metadata       String?
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platformInfo   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([platform])
+  @@index([platformId])
+}
+
+// 代购平台配置表
+model Platform {
+  id          String    @id @default(uuid())
+  name        String    @unique     // 平台名称（如 Kakobuy）
+  slug        String    @unique     // 平台标识（如 kakobuy）
+  description String?              // 平台描述
+  logoUrl     String?              // 平台 Logo
+  website     String?              // 平台官网
+  isActive    Boolean   @default(true)  // 是否启用
+  sortOrder   Int       @default(0)     // 排序顺序
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  affiliateLinks AffiliateLink[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model UserBehavior {
+  id         String   @id @default(uuid())
+  sessionId  String
+  userId     String?
+  type       String
+  targetType String
+  targetId   String
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([targetType, targetId])
+}
+
+model User {
+  id            String     @id @default(uuid())
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String     @default("user")
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  accounts      Account[]
+  adminLogs     AdminLog[]
+  favorites     Favorite[]
+  sessions      Session[]
+
+  @@index([email])
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  module    String
+  targetId  String?
+  details   String?
+  ip        String?
+  createdAt DateTime @default(now())
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([module])
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+// 用户评价
+model Review {
+  id           String   @id @default(uuid())
+  productId    String
+  userName     String?
+  rating       Int      @default(5)
+  title        String?
+  content      String?
+  isVerified   Boolean  @default(false)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// 配送信息
+model ShippingInfo {
+  id                   String   @id @default(uuid())
+  productId            String @unique
+  shippingMethod       String?
+  shippingTime         String?
+  shippingFee          Int      @default(0)
+  freeShippingThreshold Int?
+  estimatedDays        String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  product              Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}

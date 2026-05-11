@@ -1,0 +1,83 @@
+{
+  "Common": {
+    "search": "Search",
+    "searchPlaceholder": "Search products or brands",
+    "categories": "Categories",
+    "brands": "Brands",
+    "products": "Products",
+    "viewAll": "View All",
+    "loading": "Loading...",
+    "error": "Error",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "home": "Home"
+  },
+  "Home": {
+    "title": "FindsIndex - Discover Great Products",
+    "description": "Massive product database to help you find what you're looking for",
+    "featuredProducts": "Featured Products",
+    "newArrivals": "New Arrivals",
+    "popularCategories": "Popular Categories"
+  },
+  "Product": {
+    "buyNow": "Buy Now",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "viewDetails": "View Details",
+    "price": "Price",
+    "priceRange": "Price Range",
+    "brand": "Brand",
+    "category": "Category",
+    "description": "Description",
+    "images": "Images",
+    "relatedProducts": "Related Products",
+    "specifications": "Specifications",
+    "shipping": "Shipping",
+    "reviews": "Reviews",
+    "purchaseInfo": "Purchase Options",
+    "purchaseInfoDesc": "Click the button below to go to the purchase platform"
+  },
+  "Search": {
+    "title": "Search Results",
+    "noResults": "No products found",
+    "resultsCount": "Found {count} products",
+    "filters": "Filters",
+    "sortBy": "Sort By",
+    "relevance": "Relevance",
+    "priceAsc": "Price: Low to High",
+    "priceDesc": "Price: High to Low",
+    "newest": "Newest",
+    "popular": "Most Popular"
+  },
+  "Category": {
+    "allCategories": "All Categories",
+    "subcategories": "Subcategories",
+    "productsCount": "{count} products"
+  },
+  "Brand": {
+    "allBrands": "All Brands",
+    "productsCount": "{count} products",
+    "aboutBrand": "About Brand"
+  },
+  "Account": {
+    "title": "My Account",
+    "favorites": "Favorites",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "Footer": {
+    "aboutUs": "About Us",
+    "contactUs": "Contact Us",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "disclaimer": "Disclaimer: This site is for informational purposes only. We do not sell any products. All product information is for reference only."
+  },
+  "Error": {
+    "notFound": "Page Not Found",
+    "serverError": "Server Error",
+    "tryAgain": "Try Again"
+  }
+}

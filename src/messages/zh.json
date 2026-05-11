@@ -1,0 +1,83 @@
+{
+  "Common": {
+    "search": "搜索",
+    "searchPlaceholder": "搜索商品或品牌",
+    "categories": "分类",
+    "brands": "品牌",
+    "products": "商品",
+    "viewAll": "查看全部 →",
+    "loading": "加载中...",
+    "error": "出错了",
+    "back": "返回",
+    "next": "下一页",
+    "previous": "上一页",
+    "home": "首页"
+  },
+  "Home": {
+    "title": "FindsIndex - 发现好物",
+    "description": "海量商品数据库，帮你快速找到心仪商品",
+    "featuredProducts": "精选商品",
+    "newArrivals": "最新上架",
+    "popularCategories": "热门分类"
+  },
+  "Product": {
+    "buyNow": "立即购买",
+    "addToFavorites": "加入收藏",
+    "removeFromFavorites": "取消收藏",
+    "viewDetails": "查看详情",
+    "price": "价格",
+    "priceRange": "价格区间",
+    "brand": "品牌",
+    "category": "分类",
+    "description": "商品描述",
+    "images": "商品图片",
+    "relatedProducts": "相关商品",
+    "specifications": "规格参数",
+    "shipping": "配送信息",
+    "reviews": "用户评价",
+    "purchaseInfo": "购买渠道",
+    "purchaseInfoDesc": "点击下方按钮前往购买平台"
+  },
+  "Search": {
+    "title": "搜索结果",
+    "noResults": "未找到相关商品",
+    "resultsCount": "找到 {count} 个商品",
+    "filters": "筛选",
+    "sortBy": "排序",
+    "relevance": "相关性",
+    "priceAsc": "价格从低到高",
+    "priceDesc": "价格从高到低",
+    "newest": "最新上架",
+    "popular": "最受欢迎"
+  },
+  "Category": {
+    "allCategories": "全部分类",
+    "subcategories": "子分类",
+    "productsCount": "{count} 个商品"
+  },
+  "Brand": {
+    "allBrands": "全部品牌",
+    "productsCount": "{count} 个商品",
+    "aboutBrand": "关于品牌"
+  },
+  "Account": {
+    "title": "我的账户",
+    "favorites": "我的收藏",
+    "settings": "设置",
+    "logout": "退出登录",
+    "login": "登录",
+    "signup": "注册"
+  },
+  "Footer": {
+    "aboutUs": "关于我们",
+    "contactUs": "联系我们",
+    "privacyPolicy": "隐私政策",
+    "termsOfService": "服务条款",
+    "disclaimer": "免责声明：本站仅用于信息参考，不销售任何商品。所有商品信息仅供参考。"
+  },
+  "Error": {
+    "notFound": "页面未找到",
+    "serverError": "服务器错误",
+    "tryAgain": "重试"
+  }
+}
