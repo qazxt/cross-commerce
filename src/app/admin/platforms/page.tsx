@@ -1,7 +1,3 @@
-import { Suspense } from 'react';
-import { PlatformList } from './PlatformList';
-import { PlatformListSkeleton } from './PlatformListSkeleton';
-
 export default function PlatformsPage() {
   return (
     <div className="container mx-auto py-8">
@@ -18,9 +14,7 @@ export default function PlatformsPage() {
         </a>
       </div>
 
-      <Suspense fallback={<PlatformListSkeleton />}>
-        <PlatformList />
-      </Suspense>
+      <div className="p-12 text-center text-gray-400">平台管理功能开发中...</div>
     </div>
   );
 }

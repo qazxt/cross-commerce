@@ -10,11 +10,13 @@ import { ExternalLink, Share2, Heart } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { ImageGallery } from '@/components/product/ImageGallery';
 import { ProductInfo } from '@/components/product/ProductInfo';
+import { SizeGuide } from '@/components/product/SizeGuide';
 import { FavoriteButton } from '@/components/product/FavoriteButton';
 import { TrackView } from '@/components/product/TrackView';
 import { ProductStructuredData } from '@/components/seo/ProductStructuredData';
 import { BrandInfo } from '@/components/product/BrandInfo';
 import { ShippingInfo } from '@/components/product/ShippingInfo';
+import { PlatformCompare } from '@/components/product/PlatformCompare';
 import { Reviews } from '@/components/product/Reviews';
 import { RelatedProducts } from '@/components/product/RelatedProducts';
 
@@ -226,6 +228,11 @@ export default async function ProductPage({ params }: Props) {
           }}
         />
 
+        {/* 尺码指南按钮 */}
+        <div className="mt-4">
+          <SizeGuide category="服装" sizes={options.sizes?.map(s => s.value) || []} />
+        </div>
+
         {/* 商品描述和属性 - 保持服务端 */}
         <div className="md:col-span-1 space-y-6 pt-8 border-t">
           {product.description && (
@@ -289,6 +296,17 @@ export default async function ProductPage({ params }: Props) {
       <div className="mt-8">
         <BrandInfo brand={product.brand} />
       </div>
+
+      {/* 平台对比 */}
+      {product.affiliateLinks && product.affiliateLinks.length > 0 && (
+        <div className="mt-6">
+          <PlatformCompare 
+            affiliateLinks={product.affiliateLinks} 
+            productPrice={product.priceMin}
+            currency={product.currency}
+          />
+        </div>
+      )}
 
       {/* 配送信息 */}
       {product.shippingInfo && (

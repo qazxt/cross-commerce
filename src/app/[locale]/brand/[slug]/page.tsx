@@ -2,57 +2,34 @@ import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Metadata } from 'next';
-import Image from 'next/image';
 
 import { db } from '@/lib/db';
 import { ProductGrid } from '@/components/product/ProductGrid';
+import { getSafeImageUrl } from '@/lib/image-optimization';
 
 type Props = { params: { slug: string; locale: string } };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
-export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'zh' }];
-}
-
-export async function generateMetadata({
-  params,
-}: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const brand = await db.brand.findUnique({
     where: { slug: params.slug },
-    include: { _count: { select: { products: true } } },
+    include: {
+      _count: {
+        select: { products: true }
+      }
+    }
   });
 
   if (!brand) {
     return { title: '品牌未找到' };
   }
 
-  const url = `${SITE_URL}/${params.locale}/brand/${brand.slug}`;
-  
   return {
-    title: brand.name,
-    description: `${brand.name}品牌专区，汇聚${brand._count.products}款热门商品。${brand.description || '发现优质' + brand.name + '产品，推荐性价比好物！'}`,
-    keywords: [brand.name, '品牌商品', '商品推荐', '价格对比', '热门推荐'],
-    alternates: {
-      canonical: url,
-      languages: {
-        'zh-CN': `${SITE_URL}/zh/brand/${brand.slug}`,
-        'en': `${SITE_URL}/en/brand/${brand.slug}`,
-      },
-    },
+    title: `${brand.nameCn || brand.name} - ${brand.name} | FindsIndex`,
+    description: brand.description || `${brand.name}品牌商品，发现好物、对比价格、查看评测`,
     openGraph: {
-      type: 'website',
-      url,
-      title: `${brand.name} - FindsIndex`,
-      description: `${brand.name}，共${brand._count.products}个商品`,
-      siteName: 'FindsIndex',
-      locale: params.locale === 'zh' ? 'zh_CN' : 'en_US',
-      images: brand.logoUrl ? [brand.logoUrl] : undefined,
-    },
-    twitter: {
-      card: 'summary',
-      title: `${brand.name} - FindsIndex`,
-      description: `${brand.name}，共${brand._count.products}个商品`,
+      title: brand.nameCn || brand.name,
+      description: brand.description,
+      images: brand.logoUrl ? [{ url: brand.logoUrl }] : undefined,
     },
   };
 }
@@ -60,76 +37,97 @@ export async function generateMetadata({
 export default async function BrandPage({ params }: Props) {
   setRequestLocale(params.locale);
   const t = await getTranslations({ locale: params.locale, namespace: 'Brand' });
-  
+
   const brand = await db.brand.findUnique({
     where: { slug: params.slug },
     include: {
-      products: {
-        where: { status: 'active' },
-        orderBy: { createdAt: 'desc' },
-        take: 48,
-        include: {
-          brand: true,
-          primaryCategory: true,
-        },
-      },
-      _count: { select: { products: true } },
-    },
+      _count: {
+        select: { products: true }
+      }
+    }
   });
 
   if (!brand) {
     notFound();
   }
 
-  return (
-    <div className="container py-8">
-      {/* 面包屑 */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6" aria-label="Breadcrumb">
-        <a href={`/${params.locale}`} className="hover:text-foreground">首页</a>
-        <span>/</span>
-        <a href={`/${params.locale}/brand`} className="hover:text-foreground">品牌</a>
-        <span>/</span>
-        <span className="text-foreground">{brand.name}</span>
-      </nav>
+  // 获取品牌下的商品
+  const products = await db.product.findMany({
+    where: { brandId: brand.id, status: 'active' },
+    include: { brand: true },
+    orderBy: { popularityScore: 'desc' },
+    take: 24,
+  });
 
-      {/* 品牌信息 */}
-      <div className="mb-8 p-6 border rounded-lg bg-muted/30">
-        <div className="flex items-start gap-6">
-          {brand.logoUrl && (
-            <div className="w-24 h-24 relative flex-shrink-0 rounded-lg overflow-hidden bg-white border">
-              <Image
-                src={brand.logoUrl}
-                alt={brand.name}
-                fill
-                className="object-contain p-2"
-              />
+  return (
+    <div className="container py-8 space-y-8">
+      {/* 品牌头部 */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 md:p-12">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+          {brand.logoUrl ? (
+            <img
+              src={brand.logoUrl}
+              alt={brand.name}
+              className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-lg bg-white p-4 border shadow-sm"
+            />
+          ) : (
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg bg-primary/10 flex items-center justify-center">
+              <span className="text-4xl md:text-5xl font-bold text-primary">
+                {brand.name.charAt(0)}
+              </span>
             </div>
           )}
+          
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{brand.name}</h1>
-            <p className="text-muted-foreground mb-2">
-              {t('productsCount', { count: brand._count.products })}
-            </p>
-            {brand.description && (
-              <p className="text-sm text-muted-foreground">
-                {brand.description}
-              </p>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              {brand.nameCn || brand.name}
+            </h1>
+            {brand.nameCn && brand.name !== brand.nameCn && (
+              <p className="text-lg text-muted-foreground mb-2">{brand.name}</p>
             )}
+            <p className="text-sm text-muted-foreground">
+              {brand._count?.products || 0} 件商品
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* 商品列表 */}
-      <section>
-        <h2 className="text-xl font-semibold mb-6">品牌商品</h2>
-        {brand.products.length > 0 ? (
-          <ProductGrid products={brand.products} />
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">该品牌下暂无商品</p>
+        {brand.description && (
+          <div className="mt-6 prose prose-sm max-w-none text-muted-foreground">
+            <p>{brand.description}</p>
           </div>
         )}
-      </section>
+      </div>
+
+      {/* 品牌故事 */}
+      {brand.description && (
+        <div className="border rounded-lg p-6 space-y-4">
+          <h2 className="text-xl font-semibold">关于品牌</h2>
+          <div className="prose max-w-none text-muted-foreground">
+            <p>{brand.description}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 商品列表 */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">品牌商品</h2>
+          <a
+            href={`/search?brand=${brand.slug}`}
+            className="text-sm text-primary hover:underline"
+          >
+            查看全部 →
+          </a>
+        </div>
+        
+        {products.length > 0 ? (
+          <ProductGrid products={products} />
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            暂无商品
+          </div>
+        )}
+      </div>
     </div>
   );
 }

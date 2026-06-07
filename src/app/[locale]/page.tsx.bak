@@ -1,0 +1,366 @@
+import { setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
+import { Metadata } from 'next';
+import { Suspense } from 'react';
+
+import { db } from '@/lib/db';
+import { ProductGrid } from '@/components/product/ProductGrid';
+import { CategoryNav } from '@/components/category/CategoryNav';
+
+type Props = { params: { locale: string } };
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+export function generateStaticParams() {
+  return [{ locale: 'en' }, { locale: 'zh' }];
+}
+
+export async function generateMetadata({
+  params: { locale },
+}: Props): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'Home' });
+  const url = `${SITE_URL}/${locale}`;
+  
+  return {
+    title: {
+      default: 'FindsIndex - 发现好物 | 海量商品数据库',
+      template: '%s | FindsIndex',
+    },
+    description: '海量商品数据库，发现好物、对比价格、查看评测。精选 Nike、Adidas、Gucci 等热门品牌商品，帮你快速找到心仪商品。',
+    keywords: ['商品推荐', '好物发现', '价格对比', '产品评测', '购物指南', '热门商品', '精选好物', 'Nike', 'Adidas', 'Gucci', '潮牌'],
+    authors: [{ name: 'FindsIndex', url: SITE_URL }],
+    creator: 'FindsIndex',
+    publisher: 'FindsIndex',
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
+    metadataBase: new URL(SITE_URL),
+    alternates: {
+      canonical: url,
+      languages: {
+        'zh-CN': `${SITE_URL}/zh`,
+        'en': `${SITE_URL}/en`,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      url,
+      title: 'FindsIndex - 发现好物 | 海量商品数据库',
+      description: '海量商品数据库，发现好物、对比价格、查看评测。精选热门商品，帮你快速找到心仪商品。',
+      siteName: 'FindsIndex',
+      locale: locale === 'zh' ? 'zh_CN' : 'en_US',
+      images: [
+        {
+          url: `${SITE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: 'FindsIndex - 发现好物',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'FindsIndex - 发现好物',
+      description: '海量商品数据库，发现好物、对比价格、查看评测。',
+      images: [`${SITE_URL}/og-image.png`],
+      creator: '@findsindex',
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    verification: {
+      google: 'your-google-verification-code',
+    },
+  };
+}
+
+export default async function HomePage({ params: { locale } }: Props) {
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'Home' });
+
+  // 获取数据统计
+  const [brandCount, productCount, categoryCount] = await Promise.all([
+    db.brand.count({ where: { productCount: { gt: 0 } } }),
+    db.product.count({ where: { status: 'active' } }),
+    db.category.count({ where: { level: 0, isActive: true } }),
+  ]);
+
+  // 获取热门品牌（按商品数量排序）
+  const brands = await db.brand.findMany({
+    take: 8,
+    orderBy: { productCount: 'desc' },
+    where: { productCount: { gt: 0 } },
+  });
+
+  // 获取精选商品（合并精选+最新，共16个）
+  // 优先 isFeatured + 最新混合显示
+  const featuredProducts = await db.product.findMany({
+    where: { status: 'active' },
+    take: 16,
+    orderBy: [
+      { isFeatured: 'desc' },
+      { viewCount: 'desc' },
+    ],
+    include: { 
+      brand: true, 
+      primaryCategory: true,
+    },
+  });
+
+  // JSON-LD 结构化数据
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'FindsIndex',
+    alternateName: '发现好物',
+    url: SITE_URL,
+    description: '海量商品数据库，发现好物、对比价格、查看评测。',
+    inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/${locale}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: '首页',
+        item: `${SITE_URL}/${locale}`,
+      },
+    ],
+  };
+
+  return (
+    <div className="container py-8 space-y-12">
+      {/* JSON-LD 结构化数据 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      {/* Hero Section - 增强视觉效果 + 微交互 */}
+      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-[400px] md:min-h-[480px] lg:min-h-[520px] flex items-center shadow-2xl group" style={{
+        background: 'linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #ec4899 100%)',
+        backgroundSize: '200% 200%',
+        animation: 'gradientShift 15s ease infinite'
+      }}>
+        <style>{`
+          @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+          }
+        `}</style>
+        {/* 动态背景装饰 - 增加动画 */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 animate-pulse" style={{animationDelay: '1s'}} />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{animationDelay: '2s'}} />
+        </div>
+        
+        {/* 网格纹理 + 光晕 */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+        
+        <div className="relative z-10 container py-8 md:py-16 px-4">
+          <div className="max-w-2xl xl:max-w-3xl mx-auto text-center md:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white/80 text-xs md:text-sm mb-4 md:mb-6">
+              <span className="w-2 h-2 rounded-full bg-green-400" />
+              发现全球潮流好物
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
+              发现好物
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                轻松购物
+              </span>
+            </h1>
+            <p className="text-base md:text-lg text-slate-200 mb-6 md:mb-8 max-w-xl mx-auto md:mx-0">
+              海量商品数据库，帮你快速找到心仪商品
+            </p>
+            
+            {/* 搜索框 - 增强视觉效果 */}
+            <form action="/search" className="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8">
+              <div className="relative flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input 
+                  type="search" 
+                  name="q"
+                  placeholder="搜索商品、品牌..." 
+                  className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/95 backdrop-blur text-slate-900 placeholder:text-slate-400 border-0 shadow-lg focus:outline-none focus:ring-4 focus:ring-white/30 text-base md:text-lg font-medium"
+                />
+              </div>
+              <button 
+                type="submit"
+                className="h-14 px-8 rounded-2xl bg-white text-indigo-600 hover:bg-indigo-50 font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 sm:w-auto w-full"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  搜索
+                </span>
+              </button>
+            </form>
+            
+            {/* 快捷标签 - 增强微交互 */}
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+              {['Nike', 'Adidas', 'Gucci', '运动鞋', '双肩包'].map((tag) => (
+                <a
+                  key={tag}
+                  href={`/search?q=${tag}`}
+                  className="group relative overflow-hidden px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-medium text-xs md:text-sm transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-white/25 border border-white/10 active:scale-95"
+                >
+                  <span className="relative z-10">{tag}</span>
+                  <span className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-100 transition-transform duration-300 rounded-full" />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* 右侧装饰卡片 - 增加浮动动画 */}
+        <div className="hidden lg:block absolute right-8 xl:right-16 top-1/2 -translate-y-1/2">
+          <div className="relative w-44 xl:w-52 h-60 xl:h-72 rounded-2xl overflow-hidden shadow-2xl" style={{animation: 'float 3s ease-in-out infinite'}}>
+            <img 
+              src="https://si.geilicdn.com/open1858585309-1234478995-65f2000001978e929aca0a231226-unadjust_310_603.png" 
+              alt="Featured"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 text-white">
+              <p className="font-semibold text-sm">Dior Sweatpants</p>
+              <p className="text-xs text-white/90">¥294 起</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 数据统计 Banner - 桌面端优化 */}
+      <section className="py-8 md:py-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto px-4">
+          {[
+            { label: '热门品牌', value: brandCount, color: 'from-indigo-500 to-purple-500' },
+            { label: '商品总数', value: productCount, color: 'from-purple-500 to-pink-500' },
+            { label: '商品分类', value: categoryCount, color: 'from-blue-500 to-cyan-500' },
+            { label: '用户浏览', value: '10K+', color: 'from-orange-500 to-amber-500' },
+          ].map((stat, i) => (
+            <div key={i} className="group relative bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              {/* 微光效果 */}
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <div className="relative">
+                <div className={`text-3xl md:text-4xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-1 md:mb-2 transition-transform duration-300 group-hover:scale-110`} style={{display: 'inline-block'}}>
+                  {stat.value}
+                </div>
+                <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 热门分类 */}
+      <section className="py-4 md:py-6">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg md:text-xl font-bold text-slate-800">{t('popularCategories')}</h2>
+            <a href="/category" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">查看全部 →</a>
+          </div>
+          <CategoryNav />
+        </div>
+      </section>
+
+      {/* 热门品牌 */}
+      <section className="py-4 md:py-6">
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg md:text-xl font-bold text-slate-800">热门品牌</h2>
+            <a href="/brand" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">查看全部 →</a>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {brands.slice(0, 12).map((brand) => (
+              <a
+                key={brand.id}
+                href={`/brand/${brand.slug}`}
+                className="flex-shrink-0 group flex flex-col items-center p-4 rounded-xl bg-slate-50 hover:bg-white hover:shadow-md border border-transparent hover:border-indigo-200 transition-all duration-300"
+              >
+                <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">
+                  {brand.logoUrl ? (
+                    <img src={brand.logoUrl} alt={brand.name} className="w-12 h-12 object-contain" />
+                  ) : (
+                    <span className="text-xl font-bold text-slate-600">{brand.name.charAt(0)}</span>
+                  )}
+                </div>
+                <div className="text-sm font-medium text-slate-700 text-center whitespace-nowrap">{brand.name}</div>
+                <div className="text-xs text-slate-400 mt-1">{brand.productCount} 件</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 精选商品 */}
+      {featuredProducts.length > 0 ? (
+        <section className="py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">{t('featuredProducts')}</h2>
+            <a href="/search?sort=popular" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              {t('viewAll')}
+            </a>
+          </div>
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <ProductGrid products={featuredProducts} />
+          </Suspense>
+        </section>
+      ) : (
+        <section className="py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">{t('featuredProducts')}</h2>
+          </div>
+          <ProductGridSkeleton />
+        </section>
+      )}
+    </div>
+  );
+}
+
+// 商品网格骨架屏
+function ProductGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="aspect-square bg-slate-200 rounded-xl mb-3" />
+          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+          <div className="h-3 bg-slate-200 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}

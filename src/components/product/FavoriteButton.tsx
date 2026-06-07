@@ -7,24 +7,28 @@ import { useRouter } from 'next/navigation';
 
 interface FavoriteButtonProps {
   productId: string;
+  className?: string;
 }
 
-export function FavoriteButton({ productId }: FavoriteButtonProps) {
+export function FavoriteButton({ productId, className }: FavoriteButtonProps) {
   const router = useRouter();
-  // 暂时不使用 session，避免 SessionProvider 问题
-  const session = null; // 用户未登录状态
+  const session = null;
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  // 检查收藏状态
+  // 避免水合问题
   useEffect(() => {
-    if (!session) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !session) {
       setLoading(false);
       return;
     }
-
     checkFavorite();
-  }, [session, productId]);
+  }, [mounted, session, productId]);
 
   const checkFavorite = async () => {
     try {
@@ -70,8 +74,8 @@ export function FavoriteButton({ productId }: FavoriteButtonProps) {
       variant="outline"
       size="icon"
       onClick={handleToggle}
-      disabled={loading}
-      className={isFavorite ? 'text-red-500 hover:text-red-500' : ''}
+      disabled={loading || !mounted}
+      className={`${isFavorite ? 'text-red-500 hover:text-red-500' : ''} ${className || ''}`}
     >
       <Heart
         className="w-5 h-5"

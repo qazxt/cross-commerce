@@ -103,7 +103,7 @@ export function Footer() {
             {t('Footer.disclaimer')}
           </p>
           <p className="text-sm text-muted-foreground text-center mt-2">
-            © {new Date().getFullYear()} FindsIndex. All rights reserved.
+            © 2026 FindsIndex. All rights reserved.
           </p>
         </div>
       </div>

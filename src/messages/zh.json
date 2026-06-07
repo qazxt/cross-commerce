@@ -18,7 +18,8 @@
     "description": "海量商品数据库，帮你快速找到心仪商品",
     "featuredProducts": "精选商品",
     "newArrivals": "最新上架",
-    "popularCategories": "热门分类"
+    "popularCategories": "热门分类",
+    "viewAll": "查看全部 \u2192"
   },
   "Product": {
     "buyNow": "立即购买",

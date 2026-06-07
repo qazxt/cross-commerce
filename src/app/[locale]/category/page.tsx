@@ -19,6 +19,7 @@ export default async function CategoryListPage({ params: { locale } }: Props) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Category' });
 
+  // 获取一级分类及其完整三级结构
   const categories = await db.category.findMany({
     where: {
       level: 0,
@@ -29,7 +30,12 @@ export default async function CategoryListPage({ params: { locale } }: Props) {
       children: {
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
-        take: 6,
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
       },
     },
   });
@@ -38,15 +44,13 @@ export default async function CategoryListPage({ params: { locale } }: Props) {
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">{t('allCategories')}</h1>
       
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="space-y-10">
         {categories.map((category) => (
-          <div
-            key={category.id}
-            className="border rounded-lg p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start gap-4 mb-4">
+          <div key={category.id} className="border rounded-xl p-6 hover:shadow-lg transition-shadow">
+            {/* 一级分类标题 */}
+            <div className="flex items-center gap-4 mb-5 pb-4 border-b">
               {category.coverImage && (
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0">
                   <img
                     src={category.coverImage}
                     alt={category.name}
@@ -57,26 +61,41 @@ export default async function CategoryListPage({ params: { locale } }: Props) {
               <div className="flex-1">
                 <a
                   href={`/category/${category.slug}`}
-                  className="text-xl font-semibold hover:text-primary transition-colors"
+                  className="text-2xl font-bold hover:text-primary transition-colors"
                 >
                   {category.name}
                 </a>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   {t('productsCount', { count: category.productCount })}
                 </p>
               </div>
             </div>
 
+            {/* 二级 + 三级分类树 */}
             {category.children && category.children.length > 0 && (
-              <div className="space-y-2">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.children.map((child) => (
-                  <div key={child.id}>
+                  <div key={child.id} className="bg-muted/30 rounded-lg p-4">
                     <a
                       href={`/category/${child.slug}`}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors block"
+                      className="font-semibold text-base mb-3 block hover:text-primary transition-colors"
                     >
                       {child.name}
                     </a>
+                    {/* 三级分类 */}
+                    {child.children && child.children.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {child.children.map((grandchild) => (
+                          <a
+                            key={grandchild.id}
+                            href={`/category/${grandchild.slug}`}
+                            className="text-sm py-1.5 px-3 rounded-full bg-background border hover:border-primary hover:text-primary transition-colors"
+                          >
+                            {grandchild.name}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

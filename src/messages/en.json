@@ -18,7 +18,8 @@
     "description": "Massive product database to help you find what you're looking for",
     "featuredProducts": "Featured Products",
     "newArrivals": "New Arrivals",
-    "popularCategories": "Popular Categories"
+    "popularCategories": "Popular Categories",
+    "viewAll": "View All \u2192"
   },
   "Product": {
     "buyNow": "Buy Now",

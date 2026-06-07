@@ -17,21 +17,74 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: Props): Promise<Metadata> {
+  // 获取分类及父分类信息
   const category = await db.category.findUnique({
     where: { slug: params.slug },
-    include: { _count: { select: { products: true } } },
+    include: {
+      parent: {
+        include: { parent: true }
+      },
+      children: {
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        take: 6,
+      },
+    },
   });
 
   if (!category) {
     return { title: '分类未找到' };
   }
 
+  // 解析 translations
+  let trans = {};
+  try {
+    trans = category.translations ? JSON.parse(category.translations) : {};
+  } catch {}
+  
+  // 根据 locale 获取名称
+  const getName = () => {
+    if (params.locale === 'zh') return category.name;
+    return category.nameEn || category.name;
+  };
+  
+  // 构建面包屑路径
+  const getBreadcrumb = () => {
+    const parts = [];
+    if (category.parent?.parent) {
+      parts.push(category.parent.parent.name);
+    }
+    if (category.parent) {
+      parts.push(category.parent.name);
+    }
+    parts.push(category.name);
+    return parts.join(' > ');
+  };
+
+  // 解析 aliases 用于 keywords
+  let aliases: string[] = [];
+  try {
+    aliases = category.aliases ? JSON.parse(category.aliases) : [];
+  } catch {}
+
+  const levelText = category.level === 0 ? '一级分类' : category.level === 1 ? '二级分类' : '三级分类';
+  const productCount = category.productCount || 0;
+  const categoryName = getName();
   const url = `${SITE_URL}/${params.locale}/category/${category.slug}`;
   
+  // 描述文案
+  const getDescription = () => {
+    const names = category.children?.map(c => c.name).slice(0, 5).join('、') || '';
+    if (productCount > 0) {
+      return `${categoryName} - ${levelText}，汇聚${productCount}款热门商品。${names ? '包括' + names + '等' : ''}。发现优质${categoryName}商品，推荐性价比好物！`;
+    }
+    return `${categoryName} - ${levelText}。${names ? '包括' + names + '等' : ''}。发现优质${categoryName}商品，推荐性价比好物！`;
+  };
+
   return {
-    title: category.name,
-    description: `${category.name}分类，���聚${category._count.products}款热门商品。${category.description || '发现优质' + category.name + '商品，推荐性价比好物！'}`,
-    keywords: [category.name, '商品推荐', '价格对比', '热门商品'],
+    title: `${categoryName} - FindsIndex`,
+    description: getDescription(),
+    keywords: [categoryName, ...aliases.slice(0, 5), '商品推荐', '价格对比', '热门商品', '潮牌'],
     alternates: {
       canonical: url,
       languages: {
@@ -42,15 +95,18 @@ export async function generateMetadata({
     openGraph: {
       type: 'website',
       url,
-      title: `${category.name} - FindsIndex`,
-      description: `${category.name}，共${category._count.products}个商品`,
+      title: `${categoryName} - FindsIndex`,
+      description: getDescription().slice(0, 100),
       siteName: 'FindsIndex',
       locale: params.locale === 'zh' ? 'zh_CN' : 'en_US',
     },
     twitter: {
       card: 'summary',
-      title: `${category.name} - FindsIndex`,
-      description: `${category.name}，共${category._count.products}个商品`,
+      title: `${categoryName} - FindsIndex`,
+      description: getDescription().slice(0, 100),
+    },
+    other: {
+      'breadcrumb': getBreadcrumb(),
     },
   };
 }
@@ -59,13 +115,19 @@ export default async function CategoryPage({ params }: Props) {
   setRequestLocale(params.locale);
   const t = await getTranslations({ locale: params.locale, namespace: 'Category' });
   
-  // 先获取分类信息
+  // 先获取分类信息（包含二级和三级分类）
   const category = await db.category.findUnique({
     where: { slug: params.slug },
     include: {
       children: {
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
       },
       _count: { select: { products: true } },
     },
@@ -112,22 +174,37 @@ export default async function CategoryPage({ params }: Props) {
         </p>
       </div>
 
-      {/* 子分类 */}
+      {/* 二级分类 */}
       {category.children && category.children.length > 0 && (
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">{t('subcategories')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {category.children.map((child) => (
-              <a
-                key={child.id}
-                href={`/category/${child.slug}`}
-                className="p-4 border rounded-lg hover:border-primary hover:shadow-sm transition-all"
-              >
-                <div className="font-medium text-sm mb-1">{child.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {child.productCount} 个商品
-                </div>
-              </a>
+              <div key={child.id} className="border rounded-xl p-5 hover:border-primary/50 hover:shadow-md transition-all">
+                <a
+                  href={`/category/${child.slug}`}
+                  className="font-semibold text-lg mb-3 block hover:text-primary transition-colors"
+                >
+                  {child.name}
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({child.productCount})
+                  </span>
+                </a>
+                {/* 三级分类 */}
+                {child.children && child.children.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                    {child.children.map((grandchild) => (
+                      <a
+                        key={grandchild.id}
+                        href={`/category/${grandchild.slug}`}
+                        className="text-sm py-2 px-3 rounded-lg bg-muted/50 hover:bg-primary/10 hover:text-primary transition-colors"
+                      >
+                        {grandchild.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>

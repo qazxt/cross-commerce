@@ -191,7 +191,7 @@ export function ProductInfo({ product, skus, options, translations }: ProductInf
 
       {/* 操作按钮 */}
       <div className="flex gap-2 pt-4 border-t">
-        <FavoriteButton productId="placeholder" />
+        <FavoriteButton productId={product.id} />
         <Button variant="outline" size="icon">
           <Share2 className="h-5 w-5" />
         </Button>

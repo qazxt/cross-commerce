@@ -1,6 +1,59 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { CategoryWithChildren } from '@/lib/types';
+import { 
+  ShoppingBag, 
+  Shirt, 
+  Glasses, 
+  Headphones, 
+  Wallet, 
+  Crown,
+  Footprints,
+  Watch,
+  Gem
+} from 'lucide-react';
+
+const categoryIcons: Record<string, React.ComponentType<any>> = {
+  '服装': Shirt,
+  '鞋靴': Footprints,
+  '箱包': ShoppingBag,
+  '配饰': Gem,
+  '电子': Headphones,
+  '针织帽': Crown,
+  '卡包': Wallet,
+  '太阳镜': Glasses,
+  '卫衣': Shirt,
+  '短裤': Footprints,
+  '牛仔裤': Footprints,
+  '运动鞋': Footprints,
+};
+
+const defaultIcon = ShoppingBag;
+
+function getCategoryIcon(name: string) {
+  return categoryIcons[name] || defaultIcon;
+}
+
+const categoryColors: Record<string, string> = {
+  '服装': 'from-blue-500 to-blue-600',
+  '鞋靴': 'from-red-500 to-red-600',
+  '箱包': 'from-amber-500 to-amber-600',
+  '配饰': 'from-purple-500 to-purple-600',
+  '电子': 'from-gray-500 to-gray-600',
+  '针织帽': 'from-orange-500 to-orange-600',
+  '卡包': 'from-pink-500 to-pink-600',
+  '太阳镜': 'from-indigo-500 to-indigo-600',
+  '卫衣': 'from-green-500 to-green-600',
+  '短裤': 'from-cyan-500 to-cyan-600',
+  '牛仔裤': 'from-blue-600 to-blue-700',
+  '运动鞋': 'from-red-500 to-red-600',
+};
+
+const defaultColor = 'from-slate-500 to-slate-600';
+
+function getCategoryColor(name: string) {
+  return categoryColors[name] || defaultColor;
+}
 
 async function getRootCategories(): Promise<CategoryWithChildren[]> {
   try {
@@ -10,7 +63,7 @@ async function getRootCategories(): Promise<CategoryWithChildren[]> {
         isActive: true,
       },
       orderBy: { sortOrder: 'asc' },
-      take: 8,
+      take: 12,
       include: {
         children: {
           where: { isActive: true },
@@ -34,50 +87,39 @@ export async function CategoryNav() {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {categories.map((category) => (
-        <div key={category.id} className="space-y-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-3">
+      {categories.map((category) => {
+        const Icon = getCategoryIcon(category.name);
+        const colorClass = getCategoryColor(category.name);
+        
+        return (
           <Link
+            key={category.id}
             href={`/category/${category.slug}`}
-            className="block"
+            className="group"
           >
-            <div className="flex items-center gap-3">
-              {category.coverImage && (
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                  <img
-                    src={category.coverImage}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                  />
+            <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${colorClass} p-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.03]`}>
+              {/* 背景装饰 */}
+              <div className="absolute -right-3 -bottom-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Icon className="w-20 h-20" />
+              </div>
+              
+              {/* 内容 */}
+              <div className="relative z-10">
+                <div className="w-9 h-9 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
-              )}
-              <div>
-                <h3 className="font-semibold text-sm">
+                <h3 className="font-semibold text-sm text-white mb-0.5">
                   {category.name}
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  {category.productCount} 个商品
+                <p className="text-xs text-white/70">
+                  {category.productCount} 件
                 </p>
               </div>
             </div>
           </Link>
-          
-          {category.children && category.children.length > 0 && (
-            <ul className="space-y-1 ml-3">
-              {category.children.map((child) => (
-                <li key={child.id}>
-                  <Link
-                    href={`/category/${child.slug}`}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors block"
-                  >
-                    {child.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

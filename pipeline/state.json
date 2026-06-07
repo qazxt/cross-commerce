@@ -1,0 +1,55 @@
+{
+  "pipeline_name": "FindsIndex 开发流水线",
+  "version": "1.0",
+  "created": "2026-05-11",
+  "current_round": 1,
+  "status": "idle",
+  "goal": "",
+  
+  "agents": {
+    "requirements": {
+      "name": "需求发现代理",
+      "role": "产品研究员",
+      "status": "idle",
+      "last_output": ""
+    },
+    "product": {
+      "name": "产品经理代理",
+      "role": "产品经理",
+      "status": "idle", 
+      "last_output": ""
+    },
+    "design": {
+      "name": "设计师代理",
+      "role": "UI/UX设计师",
+      "status": "idle",
+      "last_output": ""
+    },
+    "development": {
+      "name": "开发代理",
+      "role": "全栈开发工程师",
+      "status": "idle",
+      "last_output": ""
+    },
+    "qa": {
+      "name": "测试代理",
+      "role": "测试工程师",
+      "status": "idle",
+      "last_output": ""
+    }
+  },
+  
+  "current_step": 0,
+  "steps": [
+    "requirements",
+    "product", 
+    "design",
+    "development",
+    "qa",
+    "summary"
+  ],
+  
+  "rounds": [],
+  
+  "next_round_suggestions": []
+}

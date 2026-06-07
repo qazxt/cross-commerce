@@ -4,6 +4,13 @@ const createNextIntlPlugin = require('next-intl/plugin');
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig = {
+  // dev 模式内存优化
+  swcMinify: true,
+  
+  // 关闭不需要的功能
+  reactStrictMode: false, // 关闭严格模式减少内存
+  
+  // 输出模式
   output: 'standalone',
   
   // 图片优化配置
